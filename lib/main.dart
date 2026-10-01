@@ -1,6 +1,8 @@
 import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
+import 'dart:async';
+import 'game_config.dart'; // ייבוא קובץ הפרמטרים החדש שיצרנו
 
 void main() {
   runApp(const MovennApp());
@@ -17,6 +19,7 @@ class MovennApp extends StatelessWidget {
       theme: ThemeData(
         colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
         useMaterial3: true,
+        fontFamily: 'Assistant',
       ),
       home: const GameScreen(),
     );
@@ -34,6 +37,18 @@ class _GameScreenState extends State<GameScreen> {
   List<dynamic> levels = [];
   int currentLevelIndex = 0;
   bool isLoaded = false;
+  
+  List<String> allMoviesPool = [];
+  List<String> currentOptions = [];
+  
+  int totalScore = 0;
+  Map<String, bool> circleResults = {};
+  String currentTarget = 'A'; 
+  final List<String> allCircles = ['A', 'B', 'C'];
+  
+  Timer? _rotationTimer;
+  Timer? _levelTimer;
+  DateTime? levelStartTime;
 
   @override
   void initState() {
@@ -41,38 +56,210 @@ class _GameScreenState extends State<GameScreen> {
     loadGameData();
   }
 
+  @override
+  void dispose() {
+    _rotationTimer?.cancel();
+    _levelTimer?.cancel();
+    super.dispose();
+  }
+
   Future<void> loadGameData() async {
-    // טעינת קובץ ה-JSON מתיקיית הנכסים
-    // שים לב ששם הקובץ תואם בדיוק למה שהגדרת
-    final String response = await rootBundle.loadString('assets/venn_levels_edit3_4.json');
+    final String response = await rootBundle.loadString('assets/venn_levels_edit3_5.json');
     final data = await json.decode(response);
+    
+    List<String> pool = [];
+    for (var level in data) {
+      pool.add(level['movies']['A']);
+      pool.add(level['movies']['B']);
+      pool.add(level['movies']['C']);
+    }
     
     setState(() {
       levels = data;
+      allMoviesPool = pool.toSet().toList(); 
       isLoaded = true;
+      startLevel();
     });
+  }
+
+  void startLevel() {
+    circleResults.clear();
+    levelStartTime = DateTime.now();
+    currentTarget = 'A';
+    
+    generateOptions();
+    startTimers();
+  }
+
+  void startTimers() {
+    _rotationTimer?.cancel();
+    _levelTimer?.cancel();
+    
+    // שימוש בפרמטר מחזוריות ההחלפה
+    _rotationTimer = Timer.periodic(Duration(seconds: GameConfig.rotationInterval), (timer) {
+      setState(() {
+        moveToNextUnanswered();
+      });
+    });
+
+    // שימוש בפרמטר הזמן המקסימלי לשלב
+    _levelTimer = Timer(Duration(seconds: GameConfig.maxLevelTime), () {
+      setState(() {
+        for (var circle in allCircles) {
+          if (!circleResults.containsKey(circle)) {
+            circleResults[circle] = false;
+          }
+        }
+        finishLevel();
+      });
+    });
+  }
+
+  void moveToNextUnanswered() {
+    List<String> remaining = allCircles.where((c) => !circleResults.containsKey(c)).toList();
+    if (remaining.isEmpty) return;
+    
+    int currentIndex = remaining.indexOf(currentTarget);
+    int nextIndex = (currentIndex + 1) % remaining.length;
+    
+    currentTarget = remaining[nextIndex];
+    generateOptions();
+  }
+
+  void generateOptions() {
+    if (levels.isEmpty) return;
+    
+    String correctAnswer = levels[currentLevelIndex]['movies'][currentTarget];
+    List<String> distractors = allMoviesPool.where((m) => m != correctAnswer).toList();
+    
+    distractors.shuffle();
+    currentOptions = [correctAnswer, distractors[0], distractors[1], distractors[2]];
+    currentOptions.shuffle();
+  }
+
+  void checkAnswer(String selectedMovie) {
+    String correctAnswer = levels[currentLevelIndex]['movies'][currentTarget];
+    bool isCorrect = (selectedMovie == correctAnswer);
+    
+    circleResults[currentTarget] = isCorrect;
+    
+    ScaffoldMessenger.of(context).showSnackBar(
+      SnackBar(
+        content: Text(isCorrect ? 'תשובה נכונה!' : 'טעות...'), 
+        duration: const Duration(milliseconds: 800),
+        backgroundColor: isCorrect ? Colors.green : Colors.red,
+      ),
+    );
+
+    if (circleResults.length == 3) {
+      finishLevel();
+    } else {
+      setState(() {
+        moveToNextUnanswered();
+        startTimers();
+      });
+    }
+  }
+
+  void finishLevel() {
+    _rotationTimer?.cancel();
+    _levelTimer?.cancel();
+    
+    int correctCount = circleResults.values.where((v) => v).length;
+    int timeTakenInSeconds = DateTime.now().difference(levelStartTime!).inSeconds;
+    
+    int pointsEarned = 0;
+    
+    // שימוש בפרמטרי הניקוד המיובאים
+    if (correctCount == 1) {
+      pointsEarned = GameConfig.pointsForOne;
+    } else if (correctCount == 2) {
+      pointsEarned = GameConfig.pointsForTwo;
+    } else if (correctCount == 3) {
+      if (timeTakenInSeconds < GameConfig.bonusTimeLimit) {
+        pointsEarned = GameConfig.pointsForThreeWithBonus;
+      } else {
+        pointsEarned = GameConfig.pointsForThree;
+      }
+    }
+    
+    setState(() {
+      totalScore += pointsEarned;
+    });
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: const Text('סיכום שלב', textAlign: TextAlign.center),
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          crossAxisAlignment: CrossAxisAlignment.start,
+          children: [
+            Text('תשובות נכונות: $correctCount מתוך 3'),
+            Text('זמן ביצוע: $timeTakenInSeconds שניות'),
+            const Divider(),
+            Text('נקודות שהרווחת: $pointsEarned', style: const TextStyle(fontWeight: FontWeight.bold)),
+          ],
+        ),
+        actions: [
+          Center(
+            child: ElevatedButton(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                
+                if (currentLevelIndex < levels.length - 1) {
+                  setState(() {
+                    currentLevelIndex++;
+                    startLevel();
+                  });
+                } else {
+                  showDialog(
+                    context: context,
+                    barrierDismissible: false,
+                    builder: (ctx) => AlertDialog(
+                      title: const Text('כל הכבוד!', textAlign: TextAlign.center),
+                      content: Text('סיימת את כל השלבים.\nהניקוד הסופי שלך: $totalScore'),
+                    )
+                  );
+                }
+              },
+              child: const Text('המשך לשלב הבא'),
+            ),
+          )
+        ],
+      )
+    );
+  }
+
+  Color getTargetColor() {
+    switch (currentTarget) {
+      case 'A': return Colors.red.shade50;
+      case 'B': return Colors.green.shade50;
+      case 'C': return Colors.blue.shade50;
+      default: return Colors.grey.shade50;
+    }
   }
 
   @override
   Widget build(BuildContext context) {
-    // מסך טעינה בזמן שה-JSON נטען
     if (!isLoaded) {
       return const Scaffold(
         body: Center(child: CircularProgressIndicator()),
       );
     }
 
-    // הגדרת נתיב התמונה בהתאם לשלב (מניח שהתמונות נקראות level_1.png וכו')
-    final imagePath = 'assets/images/level_${currentLevelIndex + 1}.png';
+    final String imageName = levels[currentLevelIndex]['image_file'];
+    final imagePath = 'assets/images/$imageName';
+    int remainingCircles = 3 - circleResults.length;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('Movenn - שלב ${currentLevelIndex + 1}'),
+        title: Text('שלב ${currentLevelIndex + 1} | ניקוד: $totalScore'),
         centerTitle: true,
       ),
       body: Column(
         children: [
-          // החלק העליון - דיאגרמת הון
           Expanded(
             flex: 5,
             child: Padding(
@@ -84,33 +271,42 @@ class _GameScreenState extends State<GameScreen> {
             ),
           ),
           
-          // קו הפרדה
           const Divider(thickness: 2),
 
-          // החלק התחתון - אזור התשובות (כרגע רק שלד כדי לוודא מעבר שלבים)
           Expanded(
             flex: 4,
-            child: Container(
+            child: AnimatedContainer(
+              duration: const Duration(milliseconds: 500),
               width: double.infinity,
-              color: Colors.grey[100],
+              color: getTargetColor(),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  const Text(
-                    'תשובות יופיעו כאן',
-                    style: TextStyle(fontSize: 24, fontWeight: FontWeight.bold),
+                  Text(
+                    'איזה סרט מסתתר מאחורי עיגול $currentTarget?',
+                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
                   ),
-                  const SizedBox(height: 20),
-                  ElevatedButton(
-                    onPressed: () {
-                      if (currentLevelIndex < levels.length - 1) {
-                        setState(() {
-                          currentLevelIndex++;
-                        });
-                      }
-                    },
-                    child: const Text('לשלב הבא'),
-                  )
+                  Text(
+                    'נותרו $remainingCircles תשובות לשלב זה',
+                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                  ),
+                  const SizedBox(height: 15),
+                  
+                  ...currentOptions.map((movie) => Padding(
+                    padding: const EdgeInsets.symmetric(vertical: 6.0),
+                    child: SizedBox(
+                      width: double.infinity,
+                      height: 50,
+                      child: ElevatedButton(
+                        onPressed: () => checkAnswer(movie),
+                        style: ElevatedButton.styleFrom(
+                          textStyle: const TextStyle(fontSize: 18),
+                        ),
+                        child: Text(movie),
+                      ),
+                    ),
+                  )).toList(),
                 ],
               ),
             ),
