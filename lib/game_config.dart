@@ -12,15 +12,9 @@ class GameConfig {
 
   // --- הגדרות ניקוד ---
   
-  /// נקודות על מעגל אחד נכון
-  static const int pointsForOne = 5; 
+  /// נקודות על כל מעגל נכון (מתעדכן מיד)
+  static const int pointsPerCorrectCircle = 5;
   
-  /// נקודות על שני מעגלים נכונים
-  static const int pointsForTwo = 10; 
-  
-  /// נקודות על שלושה מעגלים נכונים (ללא בונוס זמן)
-  static const int pointsForThree = 20; 
-  
-  /// נקודות על שלושה מעגלים נכונים + עמידה ביעד המהירות
-  static const int pointsForThreeWithBonus = 30; 
+  /// בונוס מהירות - ניתן בסוף השאלה אם כל 3 נכונים מתחת לזמן
+  static const int speedBonus = 15;
 }

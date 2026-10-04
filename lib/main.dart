@@ -2,7 +2,9 @@ import 'package:flutter/material.dart';
 import 'dart:convert';
 import 'package:flutter/services.dart';
 import 'dart:async';
-import 'game_config.dart'; // ייבוא קובץ הפרמטרים החדש שיצרנו
+import 'game_config.dart';
+import 'sound_manager.dart';
+import 'home_screen.dart';
 
 void main() {
   runApp(const MovennApp());
@@ -14,7 +16,7 @@ class MovennApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-      
+
       debugShowCheckedModeBanner: false,
       title: 'Movenn',
       theme: ThemeData(
@@ -22,7 +24,7 @@ class MovennApp extends StatelessWidget {
         useMaterial3: true,
         fontFamily: 'Assistant',
       ),
-      home: const GameScreen(),
+      home: const HomeScreen(),
     );
   }
 }
@@ -51,10 +53,12 @@ class _GameScreenState extends State<GameScreen> {
   Timer? _rotationTimer;
   Timer? _levelTimer;
   DateTime? levelStartTime;
+  final SoundManager _soundManager = SoundManager();
 
   @override
   void initState() {
     super.initState();
+    _soundManager.init();
     loadGameData();
   }
 
@@ -62,6 +66,7 @@ class _GameScreenState extends State<GameScreen> {
   void dispose() {
     _rotationTimer?.cancel();
     _levelTimer?.cancel();
+    _soundManager.dispose();
     super.dispose();
   }
 
@@ -125,7 +130,7 @@ class _GameScreenState extends State<GameScreen> {
     });
   }
 
-  void moveToNextUnanswered() {
+  void moveToNextUnanswered({bool playSound = true}) {
     List<String> remaining = allCircles.where((c) => !circleResults.containsKey(c)).toList();
     if (remaining.isEmpty) return;
     
@@ -134,6 +139,7 @@ class _GameScreenState extends State<GameScreen> {
     
     currentTarget = remaining[nextIndex];
     generateOptions();
+    if (playSound) _soundManager.playSwitch();
   }
 
   void generateOptions() {
@@ -152,6 +158,13 @@ class _GameScreenState extends State<GameScreen> {
     bool isCorrect = (selectedMovie == correctAnswer);
     
     circleResults[currentTarget] = isCorrect;
+    
+    if (isCorrect) {
+      totalScore += GameConfig.pointsPerCorrectCircle;
+      _soundManager.playCorrect();
+    } else {
+      _soundManager.playWrong();
+    }
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
@@ -178,26 +191,14 @@ class _GameScreenState extends State<GameScreen> {
     int correctCount = circleResults.values.where((v) => v).length;
     int timeTakenInSeconds = DateTime.now().difference(levelStartTime!).inSeconds;
     
-    int pointsEarned = 0;
-    
-    // שימוש בפרמטרי הניקוד המיובאים
-    if (correctCount == 1) {
-      pointsEarned = GameConfig.pointsForOne;
-    } else if (correctCount == 2) {
-      pointsEarned = GameConfig.pointsForTwo;
-    } else if (correctCount == 3) {
-      if (timeTakenInSeconds < GameConfig.bonusTimeLimit) {
-        pointsEarned = GameConfig.pointsForThreeWithBonus;
-      } else {
-        pointsEarned = GameConfig.pointsForThree;
-      }
+    if (correctCount == 3 && timeTakenInSeconds < GameConfig.bonusTimeLimit) {
+      setState(() {
+        totalScore += GameConfig.speedBonus;
+      });
     }
-    
-    setState(() {
-      totalScore += pointsEarned;
-    });
 
     if (currentLevelIndex < gameQuestions.length - 1) {
+      _soundManager.playSwitch();
       setState(() {
         currentLevelIndex++;
         startLevel();
@@ -268,6 +269,15 @@ class _GameScreenState extends State<GameScreen> {
 
     return Scaffold(
       appBar: AppBar(
+        leading: Padding(
+          padding: const EdgeInsets.only(left: 12.0),
+          child: Center(
+            child: Text(
+              '$totalScore',
+              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+            ),
+          ),
+        ),
         title: Text('שאלה ${currentLevelIndex + 1} מתוך ${gameQuestions.length}'),
         centerTitle: true,
       ),
