@@ -14,6 +14,7 @@ class MovennApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
+      
       debugShowCheckedModeBanner: false,
       title: 'Movenn',
       theme: ThemeData(
@@ -35,6 +36,7 @@ class GameScreen extends StatefulWidget {
 
 class _GameScreenState extends State<GameScreen> {
   List<dynamic> levels = [];
+  List<dynamic> gameQuestions = []; // 10 random questions for this game
   int currentLevelIndex = 0;
   bool isLoaded = false;
   
@@ -78,8 +80,16 @@ class _GameScreenState extends State<GameScreen> {
       levels = data;
       allMoviesPool = pool.toSet().toList(); 
       isLoaded = true;
-      startLevel();
+      startNewGame();
     });
+  }
+
+  void startNewGame() {
+    List<dynamic> shuffled = List.from(levels)..shuffle();
+    gameQuestions = shuffled.take(10).toList();
+    currentLevelIndex = 0;
+    totalScore = 0;
+    startLevel();
   }
 
   void startLevel() {
@@ -127,9 +137,9 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void generateOptions() {
-    if (levels.isEmpty) return;
+    if (gameQuestions.isEmpty) return;
     
-    String correctAnswer = levels[currentLevelIndex]['movies'][currentTarget];
+    String correctAnswer = gameQuestions[currentLevelIndex]['movies'][currentTarget];
     List<String> distractors = allMoviesPool.where((m) => m != correctAnswer).toList();
     
     distractors.shuffle();
@@ -138,7 +148,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   void checkAnswer(String selectedMovie) {
-    String correctAnswer = levels[currentLevelIndex]['movies'][currentTarget];
+    String correctAnswer = gameQuestions[currentLevelIndex]['movies'][currentTarget];
     bool isCorrect = (selectedMovie == correctAnswer);
     
     circleResults[currentTarget] = isCorrect;
@@ -187,49 +197,52 @@ class _GameScreenState extends State<GameScreen> {
       totalScore += pointsEarned;
     });
 
-    showDialog(
-      context: context,
-      barrierDismissible: false,
-      builder: (ctx) => AlertDialog(
-        title: const Text('סיכום שלב', textAlign: TextAlign.center),
-        content: Column(
-          mainAxisSize: MainAxisSize.min,
-          crossAxisAlignment: CrossAxisAlignment.start,
-          children: [
-            Text('תשובות נכונות: $correctCount מתוך 3'),
-            Text('זמן ביצוע: $timeTakenInSeconds שניות'),
-            const Divider(),
-            Text('נקודות שהרווחת: $pointsEarned', style: const TextStyle(fontWeight: FontWeight.bold)),
+    if (currentLevelIndex < gameQuestions.length - 1) {
+      setState(() {
+        currentLevelIndex++;
+        startLevel();
+      });
+    } else {
+      showDialog(
+        context: context,
+        barrierDismissible: false,
+        builder: (ctx) => AlertDialog(
+          title: const Text('סיום משחק!', textAlign: TextAlign.center),
+          content: Text(
+            'הניקוד הסופי שלך: $totalScore',
+            textAlign: TextAlign.center,
+            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          ),
+          actions: [
+            Row(
+              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
+              children: [
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    setState(() {
+                      startNewGame();
+                    });
+                  },
+                  child: const Text('משחק חדש'),
+                ),
+                ElevatedButton(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    // Exit - close the app or go back to initial state
+                    SystemNavigator.pop();
+                  },
+                  style: ElevatedButton.styleFrom(
+                    backgroundColor: Colors.grey,
+                  ),
+                  child: const Text('יציאה'),
+                ),
+              ],
+            ),
           ],
         ),
-        actions: [
-          Center(
-            child: ElevatedButton(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                
-                if (currentLevelIndex < levels.length - 1) {
-                  setState(() {
-                    currentLevelIndex++;
-                    startLevel();
-                  });
-                } else {
-                  showDialog(
-                    context: context,
-                    barrierDismissible: false,
-                    builder: (ctx) => AlertDialog(
-                      title: const Text('כל הכבוד!', textAlign: TextAlign.center),
-                      content: Text('סיימת את כל השלבים.\nהניקוד הסופי שלך: $totalScore'),
-                    )
-                  );
-                }
-              },
-              child: const Text('המשך לשלב הבא'),
-            ),
-          )
-        ],
-      )
-    );
+      );
+    }
   }
 
   Color getTargetColor() {
@@ -249,13 +262,13 @@ class _GameScreenState extends State<GameScreen> {
       );
     }
 
-    final String imageName = levels[currentLevelIndex]['image_file'];
+    final String imageName = gameQuestions[currentLevelIndex]['image_file'];
     final imagePath = 'assets/images/$imageName';
     int remainingCircles = 3 - circleResults.length;
 
     return Scaffold(
       appBar: AppBar(
-        title: Text('שלב ${currentLevelIndex + 1} | ניקוד: $totalScore'),
+        title: Text('שאלה ${currentLevelIndex + 1} מתוך ${gameQuestions.length}'),
         centerTitle: true,
       ),
       body: Column(
