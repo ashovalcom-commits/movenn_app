@@ -36,7 +36,7 @@ class GameScreen extends StatefulWidget {
   State<GameScreen> createState() => _GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen> {
+class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateMixin {
   List<dynamic> levels = [];
   List<dynamic> gameQuestions = []; // 10 random questions for this game
   int currentLevelIndex = 0;
@@ -54,16 +54,26 @@ class _GameScreenState extends State<GameScreen> {
   Timer? _levelTimer;
   DateTime? levelStartTime;
   final SoundManager _soundManager = SoundManager();
+  late AnimationController _pulseController;
+  late Animation<double> _pulseAnimation;
 
   @override
   void initState() {
     super.initState();
+    _pulseController = AnimationController(
+      vsync: this,
+      duration: const Duration(milliseconds: 900),
+    )..repeat(reverse: true);
+    _pulseAnimation = Tween<double>(begin: 0.35, end: 0.75).animate(
+      CurvedAnimation(parent: _pulseController, curve: Curves.easeInOut),
+    );
     _soundManager.init();
     loadGameData();
   }
 
   @override
   void dispose() {
+    _pulseController.dispose();
     _rotationTimer?.cancel();
     _levelTimer?.cancel();
     _soundManager.dispose();
@@ -287,9 +297,30 @@ class _GameScreenState extends State<GameScreen> {
             flex: 5,
             child: Padding(
               padding: const EdgeInsets.all(16.0),
-              child: Image.asset(
-                imagePath,
-                fit: BoxFit.contain,
+              child: LayoutBuilder(
+                builder: (context, constraints) {
+                  return Stack(
+                    alignment: Alignment.center,
+                    children: [
+                      Image.asset(
+                        imagePath,
+                        fit: BoxFit.contain,
+                      ),
+                      AnimatedBuilder(
+                        animation: _pulseAnimation,
+                        builder: (context, child) {
+                          return CustomPaint(
+                            size: Size(constraints.maxWidth, constraints.maxHeight),
+                            painter: _SpotlightPainter(
+                              target: currentTarget,
+                              opacity: _pulseAnimation.value,
+                            ),
+                          );
+                        },
+                      ),
+                    ],
+                  );
+                },
               ),
             ),
           ),
@@ -338,4 +369,61 @@ class _GameScreenState extends State<GameScreen> {
       ),
     );
   }
+}
+
+class _SpotlightPainter extends CustomPainter {
+  final String target;
+  final double opacity;
+
+  _SpotlightPainter({required this.target, required this.opacity});
+
+  @override
+  void paint(Canvas canvas, Size size) {
+    final double imgSide = size.width < size.height ? size.width : size.height;
+    final double offsetX = (size.width - imgSide) / 2;
+    final double offsetY = (size.height - imgSide) / 2;
+
+    late double cx, cy;
+    late Color color;
+    const double r = 0.30;
+
+    switch (target) {
+      case 'A':
+        cx = 0.38; cy = 0.39;
+        color = Colors.red;
+        break;
+      case 'B':
+        cx = 0.62; cy = 0.39;
+        color = Colors.green;
+        break;
+      case 'C':
+        cx = 0.50; cy = 0.6;
+        color = Colors.blue;
+        break;
+      default:
+        return;
+    }
+
+    final center = Offset(offsetX + cx * imgSide, offsetY + cy * imgSide);
+    final radius = r * imgSide;
+
+    // Dim everything outside the target circle
+    final dimPaint = Paint()..color = Colors.black.withValues(alpha: 0.35);
+    final path = Path()
+      ..addRect(Rect.fromLTWH(0, 0, size.width, size.height))
+      ..addOval(Rect.fromCircle(center: center, radius: radius))
+      ..fillType = PathFillType.evenOdd;
+    canvas.drawPath(path, dimPaint);
+
+    // Pulsing glow ring
+    final glowPaint = Paint()
+      ..color = color.withValues(alpha: opacity)
+      ..style = PaintingStyle.stroke
+      ..strokeWidth = 4.0;
+    canvas.drawCircle(center, radius, glowPaint);
+  }
+
+  @override
+  bool shouldRepaint(covariant _SpotlightPainter oldDelegate) =>
+      oldDelegate.target != target || oldDelegate.opacity != opacity;
 }

@@ -2,13 +2,13 @@ class GameConfig {
   // --- הגדרות זמנים (בשניות) ---
   
   /// כל כמה שניות מתחלף המעגל (A, B, C) באזור התשובות
-  static const int rotationInterval = 10; 
+  static const int rotationInterval = 7; 
   
   /// הזמן המקסימלי לכל דיאגרמת ון (שלב) לפני פסילה אוטומטית
-  static const int maxLevelTime = 120; 
+  static const int maxLevelTime = 84; 
   
   /// רף הזמן לקבלת בונוס מהירות (אם ענו על כל ה-3 נכון מתחת לזמן הזה)
-  static const int bonusTimeLimit = 30; 
+  static const int bonusTimeLimit = 21; 
 
   // --- הגדרות ניקוד ---
   
