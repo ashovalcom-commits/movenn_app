@@ -71,7 +71,7 @@ class _GameScreenState extends State<GameScreen> {
   }
 
   Future<void> loadGameData() async {
-    final String response = await rootBundle.loadString('assets/venn_questions_edit3_5.json');
+    final String response = await rootBundle.loadString('assets/venn_questions_edit3_6.json');
     final data = await json.decode(response);
     
     List<String> pool = [];
