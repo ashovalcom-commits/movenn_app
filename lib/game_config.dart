@@ -7,14 +7,14 @@ class GameConfig {
   /// הזמן המקסימלי לכל דיאגרמת ון (שלב) לפני פסילה אוטומטית
   static const int maxLevelTime = 60; 
   
-  /// רף הזמן לקבלת בונוס מהירות (אם ענו על כל ה-3 נכון מתחת לזמן הזה)
-  static const int bonusTimeLimit = 15; 
+  static const int bonusTimeTier1 = 15;
+  static const int bonusTimeTier2 = 30;
 
   // --- הגדרות ניקוד ---
   
   /// נקודות על כל מעגל נכון (מתעדכן מיד)
   static const int pointsPerCorrectCircle = 5;
   
-  /// בונוס מהירות - ניתן בסוף השאלה אם כל 3 נכונים מתחת לזמן
-  static const int speedBonus = 15;
+  static const int speedBonusTier1 = 30;
+  static const int speedBonusTier2 = 15;
 }

@@ -5,6 +5,7 @@ import 'dart:async';
 import 'game_config.dart';
 import 'sound_manager.dart';
 import 'home_screen.dart';
+import 'app_theme.dart';
 
 void main() {
   runApp(const MovennApp());
@@ -16,14 +17,9 @@ class MovennApp extends StatelessWidget {
   @override
   Widget build(BuildContext context) {
     return MaterialApp(
-
       debugShowCheckedModeBanner: false,
       title: 'Movenn',
-      theme: ThemeData(
-        colorScheme: ColorScheme.fromSeed(seedColor: Colors.blueGrey),
-        useMaterial3: true,
-        fontFamily: 'Assistant',
-      ),
+      theme: AppTheme.theme,
       home: const HomeScreen(),
     );
   }
@@ -178,9 +174,20 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     
     ScaffoldMessenger.of(context).showSnackBar(
       SnackBar(
-        content: Text(isCorrect ? 'תשובה נכונה!' : 'טעות...'), 
+        content: Row(
+          mainAxisAlignment: MainAxisAlignment.center,
+          children: [
+            Icon(
+              isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
+              color: Colors.white,
+              size: 20,
+            ),
+            const SizedBox(width: 8),
+            Text(isCorrect ? 'תשובה נכונה!' : 'טעות...'),
+          ],
+        ),
         duration: const Duration(milliseconds: 800),
-        backgroundColor: isCorrect ? Colors.green : Colors.red,
+        backgroundColor: isCorrect ? AppColors.correct : AppColors.wrong,
       ),
     );
 
@@ -201,10 +208,18 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
     int correctCount = circleResults.values.where((v) => v).length;
     int timeTakenInSeconds = DateTime.now().difference(levelStartTime!).inSeconds;
     
-    if (correctCount == 3 && timeTakenInSeconds < GameConfig.bonusTimeLimit) {
-      setState(() {
-        totalScore += GameConfig.speedBonus;
-      });
+    if (correctCount == 3) {
+      int bonus = 0;
+      if (timeTakenInSeconds <= GameConfig.bonusTimeTier1) {
+        bonus = GameConfig.speedBonusTier1;
+      } else if (timeTakenInSeconds <= GameConfig.bonusTimeTier2) {
+        bonus = GameConfig.speedBonusTier2;
+      }
+      if (bonus > 0) {
+        setState(() {
+          totalScore += bonus;
+        });
+      }
     }
 
     if (currentLevelIndex < gameQuestions.length - 1) {
@@ -218,37 +233,48 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
         context: context,
         barrierDismissible: false,
         builder: (ctx) => AlertDialog(
-          title: const Text('סיום משחק!', textAlign: TextAlign.center),
-          content: Text(
-            'הניקוד הסופי שלך: $totalScore',
-            textAlign: TextAlign.center,
-            style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
+          title: Column(
+            children: [
+              const Icon(Icons.emoji_events_rounded, size: 48, color: AppColors.accent),
+              const SizedBox(height: 8),
+              const Text('סיום משחק!', textAlign: TextAlign.center),
+            ],
           ),
+          content: Column(
+            mainAxisSize: MainAxisSize.min,
+            children: [
+              Text(
+                '$totalScore',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 40,
+                  fontWeight: FontWeight.w800,
+                  color: AppColors.primary,
+                ),
+              ),
+              const SizedBox(height: 4),
+              const Text('נקודות', textAlign: TextAlign.center),
+            ],
+          ),
+          actionsAlignment: MainAxisAlignment.spaceEvenly,
           actions: [
-            Row(
-              mainAxisAlignment: MainAxisAlignment.spaceEvenly,
-              children: [
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    setState(() {
-                      startNewGame();
-                    });
-                  },
-                  child: const Text('משחק חדש'),
-                ),
-                ElevatedButton(
-                  onPressed: () {
-                    Navigator.of(ctx).pop();
-                    // Exit - close the app or go back to initial state
-                    SystemNavigator.pop();
-                  },
-                  style: ElevatedButton.styleFrom(
-                    backgroundColor: Colors.grey,
-                  ),
-                  child: const Text('יציאה'),
-                ),
-              ],
+            OutlinedButton.icon(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                SystemNavigator.pop();
+              },
+              icon: const Icon(Icons.exit_to_app_rounded),
+              label: const Text('יציאה'),
+            ),
+            ElevatedButton.icon(
+              onPressed: () {
+                Navigator.of(ctx).pop();
+                setState(() {
+                  startNewGame();
+                });
+              },
+              icon: const Icon(Icons.replay_rounded),
+              label: const Text('משחק חדש'),
             ),
           ],
         ),
@@ -258,10 +284,19 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
   Color getTargetColor() {
     switch (currentTarget) {
-      case 'A': return Colors.red.shade50;
-      case 'B': return Colors.green.shade50;
-      case 'C': return Colors.blue.shade50;
-      default: return Colors.grey.shade50;
+      case 'A': return AppColors.circleABg;
+      case 'B': return AppColors.circleBBg;
+      case 'C': return AppColors.circleCBg;
+      default: return AppColors.surfaceVariant;
+    }
+  }
+
+  Color getTargetAccent() {
+    switch (currentTarget) {
+      case 'A': return AppColors.circleA;
+      case 'B': return AppColors.circleB;
+      case 'C': return AppColors.circleC;
+      default: return AppColors.primary;
     }
   }
 
@@ -279,17 +314,31 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
 
     return Scaffold(
       appBar: AppBar(
-        leading: Padding(
-          padding: const EdgeInsets.only(left: 12.0),
-          child: Center(
-            child: Text(
-              '$totalScore',
-              style: const TextStyle(fontSize: 20, fontWeight: FontWeight.bold),
-            ),
-          ),
-        ),
+        automaticallyImplyLeading: false,
         title: Text('שאלה ${currentLevelIndex + 1} מתוך ${gameQuestions.length}'),
         centerTitle: true,
+        actions: [
+          Padding(
+            padding: const EdgeInsets.only(right: 12.0),
+            child: Center(
+              child: Container(
+                padding: const EdgeInsets.symmetric(horizontal: 12, vertical: 4),
+                decoration: BoxDecoration(
+                  color: AppColors.accent,
+                  borderRadius: BorderRadius.circular(10),
+                ),
+                child: Text(
+                  '$totalScore',
+                  style: const TextStyle(
+                    fontSize: 18,
+                    fontWeight: FontWeight.w800,
+                    color: AppColors.textPrimary,
+                  ),
+                ),
+              ),
+            ),
+          ),
+        ],
       ),
       body: Column(
         children: [
@@ -332,36 +381,78 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
             child: AnimatedContainer(
               duration: const Duration(milliseconds: 500),
               width: double.infinity,
-              color: getTargetColor(),
-              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 10),
+              decoration: BoxDecoration(
+                color: getTargetColor(),
+                borderRadius: const BorderRadius.vertical(top: Radius.circular(24)),
+              ),
+              padding: const EdgeInsets.symmetric(horizontal: 20, vertical: 12),
               child: Column(
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
-                  Text(
-                    'איזה סרט מסתתר מאחורי עיגול \u2068$currentTarget\u2069\u200F?',
-                    style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
-                    textDirection: TextDirection.rtl,
+                  Row(
+                    mainAxisAlignment: MainAxisAlignment.center,
+                    children: [
+                      Container(
+                        width: 28,
+                        height: 28,
+                        decoration: BoxDecoration(
+                          color: getTargetAccent(),
+                          shape: BoxShape.circle,
+                        ),
+                        alignment: Alignment.center,
+                        child: Text(
+                          currentTarget,
+                          style: const TextStyle(
+                            color: Colors.white,
+                            fontWeight: FontWeight.w800,
+                            fontSize: 14,
+                          ),
+                        ),
+                      ),
+                      const SizedBox(width: 8),
+                      Text(
+                        'איזה סרט מסתתר מאחורי עיגול \u2068$currentTarget\u2069\u200F?',
+                        style: TextStyle(
+                          fontSize: 20,
+                          fontWeight: FontWeight.w700,
+                          color: AppColors.textPrimary,
+                        ),
+                        textDirection: TextDirection.rtl,
+                      ),
+                    ],
                   ),
+                  const SizedBox(height: 2),
                   Text(
                     'נותרו $remainingCircles תשובות לשלב זה',
-                    style: TextStyle(fontSize: 14, color: Colors.grey[700]),
+                    style: const TextStyle(fontSize: 13, color: AppColors.textSecondary),
                   ),
-                  const SizedBox(height: 15),
+                  const SizedBox(height: 12),
                   
                   ...currentOptions.map((movie) => Padding(
-                    padding: const EdgeInsets.symmetric(vertical: 6.0),
+                    padding: const EdgeInsets.symmetric(vertical: 5.0),
                     child: SizedBox(
                       width: double.infinity,
-                      height: 50,
+                      height: 48,
                       child: ElevatedButton(
                         onPressed: () => checkAnswer(movie),
                         style: ElevatedButton.styleFrom(
-                          textStyle: const TextStyle(fontSize: 18),
+                          backgroundColor: AppColors.surface,
+                          foregroundColor: AppColors.textPrimary,
+                          elevation: 1,
+                          shadowColor: getTargetAccent().withAlpha(40),
+                          side: BorderSide(color: getTargetAccent().withAlpha(60)),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(12),
+                          ),
+                          textStyle: const TextStyle(
+                            fontSize: 16,
+                            fontWeight: FontWeight.w500,
+                          ),
                         ),
                         child: Text(movie),
                       ),
                     ),
-                  )).toList(),
+                  )),
                 ],
               ),
             ),
@@ -391,15 +482,15 @@ class _SpotlightPainter extends CustomPainter {
     switch (target) {
       case 'A':
         cx = 0.38; cy = 0.39;
-        color = Colors.red;
+        color = AppColors.circleA;
         break;
       case 'B':
         cx = 0.62; cy = 0.39;
-        color = Colors.green;
+        color = AppColors.circleB;
         break;
       case 'C':
         cx = 0.50; cy = 0.6;
-        color = Colors.blue;
+        color = AppColors.circleC;
         break;
       default:
         return;
