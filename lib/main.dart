@@ -338,8 +338,9 @@ class _GameScreenState extends State<GameScreen> with SingleTickerProviderStateM
                 mainAxisAlignment: MainAxisAlignment.center,
                 children: [
                   Text(
-                    'איזה סרט מסתתר מאחורי עיגול $currentTarget?',
+                    'איזה סרט מסתתר מאחורי עיגול \u2068$currentTarget\u2069\u200F?',
                     style: const TextStyle(fontSize: 22, fontWeight: FontWeight.bold),
+                    textDirection: TextDirection.rtl,
                   ),
                   Text(
                     'נותרו $remainingCircles תשובות לשלב זה',

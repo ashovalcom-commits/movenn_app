@@ -14,23 +14,13 @@ class HomeScreen extends StatelessWidget {
           child: Column(
             mainAxisAlignment: MainAxisAlignment.center,
             children: [
-              // Logo placeholder
-              Container(
-                width: 180,
-                height: 180,
-                decoration: BoxDecoration(
-                  color: Colors.blueGrey.shade100,
-                  borderRadius: BorderRadius.circular(24),
-                ),
-                child: const Center(
-                  child: Text(
-                    'MOVENN',
-                    style: TextStyle(
-                      fontSize: 32,
-                      fontWeight: FontWeight.bold,
-                      color: Colors.blueGrey,
-                    ),
-                  ),
+              ClipRRect(
+                borderRadius: BorderRadius.circular(24),
+                child: Image.asset(
+                  'assets/images/logo.jpeg',
+                  width: 500,
+                  height: 500,
+                  fit: BoxFit.cover,
                 ),
               ),
 
