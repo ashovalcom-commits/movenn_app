@@ -1,5 +1,7 @@
 import 'package:flutter/material.dart';
+
 import 'app_theme.dart';
+import 'responsive.dart';
 
 class InstructionsScreen extends StatelessWidget {
   const InstructionsScreen({super.key});
@@ -82,61 +84,71 @@ class InstructionsScreen extends StatelessWidget {
 
   @override
   Widget build(BuildContext context) {
+    final r = Responsive(context);
+
     return Scaffold(
       appBar: AppBar(
         title: const Text('הוראות המשחק', textDirection: TextDirection.rtl),
       ),
       body: Directionality(
         textDirection: TextDirection.rtl,
-        child: SingleChildScrollView(
-          padding: const EdgeInsets.symmetric(horizontal: 16, vertical: 20),
-          child: Column(
-            children: [
-              _buildSection(
-                icon: Icons.flag_rounded,
-                title: 'מטרת המשחק',
+        child: Center(
+          child: ConstrainedBox(
+            constraints: BoxConstraints(maxWidth: r.maxContentWidth),
+            child: SingleChildScrollView(
+              padding: EdgeInsets.symmetric(
+                horizontal: r.sp(16),
+                vertical: r.sp(20),
+              ),
+              child: Column(
                 children: [
-                  const Text(
-                    'לזהות את הסרטים המסתתרים מאחורי המעגלים בדיאגרמה, בהתבסס על השחקנים המופיעים בהם, ולצבור את מספר הנקודות המירבי לאורך 10 שלבי המשחק.',
-                    style: TextStyle(
-                      fontSize: 15,
-                      color: AppColors.textSecondary,
-                      height: 1.5,
-                    ),
+                  _buildSection(
+                    icon: Icons.flag_rounded,
+                    title: 'מטרת המשחק',
+                    children: [
+                      const Text(
+                        'לזהות את הסרטים המסתתרים מאחורי המעגלים בדיאגרמה, בהתבסס על השחקנים המופיעים בהם, ולצבור את מספר הנקודות המירבי לאורך 10 שלבי המשחק.',
+                        style: TextStyle(
+                          fontSize: 15,
+                          color: AppColors.textSecondary,
+                          height: 1.5,
+                        ),
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSection(
+                    icon: Icons.sports_esports_rounded,
+                    title: 'איך משחקים?',
+                    children: [
+                      _buildBullet(
+                        'פענוח הדיאגרמה:',
+                        'בכל שלב תוצג תמונה עם 3 מעגלים, כאשר כל מעגל מייצג סרט. השחקנים שמופיעים באזורי החיתוך הם אלו ששיחקו במשותף בסרטים החופפים.',
+                      ),
+                      _buildBullet(
+                        'בחירת התשובות:',
+                        'המשחק יעבור בין המעגלים, ועבור כל מעגל תצטרכו לבחור את הסרט הנכון מתוך האפשרויות שיוצגו בחלק התחתון של המסך.',
+                      ),
+                    ],
+                  ),
+                  const SizedBox(height: 8),
+                  _buildSection(
+                    icon: Icons.star_rounded,
+                    title: 'שיטת הניקוד',
+                    children: [
+                      _buildBullet(
+                        '5 נקודות',
+                        'יוענקו לכם על כל זיהוי נכון של סרט בודד.',
+                      ),
+                      _buildBullet(
+                        'בונוס מהירות:',
+                        'זיהיתם נכון את כל שלושת הסרטים באותה תמונה תוך 15 שניות או פחות? תקבלו 30 נקודות בונוס. בין 15 ל-30 שניות? תקבלו 15 נקודות בונוס.',
+                      ),
+                    ],
                   ),
                 ],
               ),
-              const SizedBox(height: 8),
-              _buildSection(
-                icon: Icons.sports_esports_rounded,
-                title: 'איך משחקים?',
-                children: [
-                  _buildBullet(
-                    'פענוח הדיאגרמה:',
-                    'בכל שלב תוצג תמונה עם 3 מעגלים, כאשר כל מעגל מייצג סרט. השחקנים שמופיעים באזורי החיתוך הם אלו ששיחקו במשותף בסרטים החופפים.',
-                  ),
-                  _buildBullet(
-                    'בחירת התשובות:',
-                    'המשחק יעבור בין המעגלים, ועבור כל מעגל תצטרכו לבחור את הסרט הנכון מתוך האפשרויות שיוצגו בחלק התחתון של המסך.',
-                  ),
-                ],
-              ),
-              const SizedBox(height: 8),
-              _buildSection(
-                icon: Icons.star_rounded,
-                title: 'שיטת הניקוד',
-                children: [
-                  _buildBullet(
-                    '5 נקודות',
-                    'יוענקו לכם על כל זיהוי נכון של סרט בודד.',
-                  ),
-                  _buildBullet(
-                    'בונוס מהירות:',
-                    'זיהיתם נכון את כל שלושת הסרטים באותה תמונה תוך 15 שניות או פחות? תקבלו 30 נקודות בונוס. בין 15 ל-30 שניות? תקבלו 15 נקודות בונוס.',
-                  ),
-                ],
-              ),
-            ],
+            ),
           ),
         ),
       ),
