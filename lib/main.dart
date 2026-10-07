@@ -8,7 +8,7 @@ import 'dart:async';
 
 import 'game_config.dart';
 import 'sound_manager.dart';
-import 'home_screen.dart';
+import 'splash_screen.dart';
 import 'app_theme.dart';
 import 'responsive.dart';
 
@@ -25,7 +25,7 @@ class MovennApp extends StatelessWidget {
       debugShowCheckedModeBanner: false,
       title: 'Movenn',
       theme: AppTheme.theme,
-      home: const HomeScreen(),
+      home: const SplashScreen(),
     );
   }
 }
