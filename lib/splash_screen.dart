@@ -150,7 +150,8 @@ class _SplashScreenState extends State<SplashScreen>
                   );
                 },
                 child: const Text(
-                  'Movenn',
+                  // 'MoVenn',
+                  '',
                   style: TextStyle(
                     fontSize: 36,
                     fontWeight: FontWeight.w800,
@@ -172,9 +173,9 @@ class _SplashScreenState extends State<SplashScreen>
                   );
                 },
                 child: const Text(
-                  'Movies × Venn',
+                  'Movies * Venn',
                   style: TextStyle(
-                    fontSize: 16,
+                    fontSize: 30,
                     fontWeight: FontWeight.w400,
                     color: Colors.white70,
                     letterSpacing: 1.2,
