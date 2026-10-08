@@ -11,6 +11,7 @@ import 'sound_manager.dart';
 import 'splash_screen.dart';
 import 'app_theme.dart';
 import 'responsive.dart';
+import 'stats_service.dart';
 
 void main() {
   runApp(const MovennApp());
@@ -48,6 +49,8 @@ class _GameScreenState extends State<GameScreen>
   List<String> currentOptions = [];
 
   int totalScore = 0;
+  int gameCorrectAnswers = 0;
+  int gameTotalAnswers = 0;
   Map<String, bool> circleResults = {};
   String currentTarget = 'A';
   final List<String> allCircles = ['A', 'B', 'C'];
@@ -108,6 +111,8 @@ class _GameScreenState extends State<GameScreen>
     gameQuestions = shuffled.take(10).toList();
     currentLevelIndex = 0;
     totalScore = 0;
+    gameCorrectAnswers = 0;
+    gameTotalAnswers = 0;
     startLevel();
   }
 
@@ -228,6 +233,8 @@ class _GameScreenState extends State<GameScreen>
     _levelTimer?.cancel();
 
     int correctCount = circleResults.values.where((v) => v).length;
+    gameCorrectAnswers += correctCount;
+    gameTotalAnswers += circleResults.length;
     int timeTakenInSeconds = DateTime.now()
         .difference(levelStartTime!)
         .inSeconds;
@@ -253,61 +260,102 @@ class _GameScreenState extends State<GameScreen>
         startLevel();
       });
     } else {
-      showDialog(
-        context: context,
-        barrierDismissible: false,
-        builder: (ctx) => AlertDialog(
-          title: Column(
-            children: [
-              const Icon(
-                Icons.emoji_events_rounded,
-                size: 48,
-                color: AppColors.accent,
-              ),
-              const SizedBox(height: 8),
-              const Text('סיום משחק!', textAlign: TextAlign.center),
-            ],
-          ),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              Text(
-                '$totalScore',
-                textAlign: TextAlign.center,
-                style: const TextStyle(
-                  fontSize: 40,
-                  fontWeight: FontWeight.w800,
-                  color: AppColors.primary,
-                ),
-              ),
-              const SizedBox(height: 4),
-              const Text('נקודות', textAlign: TextAlign.center),
-            ],
-          ),
-          actionsAlignment: MainAxisAlignment.spaceEvenly,
-          actions: [
-            OutlinedButton.icon(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                SystemNavigator.pop();
-              },
-              icon: const Icon(Icons.exit_to_app_rounded),
-              label: const Text('יציאה'),
+      _saveAndShowEndDialog();
+    }
+  }
+
+  Future<void> _saveAndShowEndDialog() async {
+    final stats = StatsService();
+    final prevStats = await stats.getStats();
+    final isNewHighScore = totalScore > prevStats.highScore;
+
+    await stats.recordGame(
+      score: totalScore,
+      correctAnswers: gameCorrectAnswers,
+      totalQuestions: gameTotalAnswers,
+    );
+
+    if (!mounted) return;
+
+    showDialog(
+      context: context,
+      barrierDismissible: false,
+      builder: (ctx) => AlertDialog(
+        title: Column(
+          children: [
+            Icon(
+              isNewHighScore
+                  ? Icons.star_rounded
+                  : Icons.emoji_events_rounded,
+              size: 48,
+              color: AppColors.accent,
             ),
-            ElevatedButton.icon(
-              onPressed: () {
-                Navigator.of(ctx).pop();
-                setState(() {
-                  startNewGame();
-                });
-              },
-              icon: const Icon(Icons.replay_rounded),
-              label: const Text('משחק חדש'),
+            const SizedBox(height: 8),
+            Text(
+              isNewHighScore ? '🎉 שיא חדש!' : 'סיום משחק!',
+              textAlign: TextAlign.center,
             ),
           ],
         ),
-      );
-    }
+        content: Column(
+          mainAxisSize: MainAxisSize.min,
+          children: [
+            Text(
+              '$totalScore',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 40,
+                fontWeight: FontWeight.w800,
+                color: AppColors.primary,
+              ),
+            ),
+            const SizedBox(height: 4),
+            const Text('נקודות', textAlign: TextAlign.center),
+            const SizedBox(height: 12),
+            Text(
+              '$gameCorrectAnswers/$gameTotalAnswers תשובות נכונות',
+              textAlign: TextAlign.center,
+              style: const TextStyle(
+                fontSize: 14,
+                color: AppColors.textSecondary,
+              ),
+            ),
+            if (!isNewHighScore) ...[
+              const SizedBox(height: 4),
+              Text(
+                'שיא: ${prevStats.highScore}',
+                textAlign: TextAlign.center,
+                style: const TextStyle(
+                  fontSize: 14,
+                  color: AppColors.textSecondary,
+                ),
+              ),
+            ],
+          ],
+        ),
+        actionsAlignment: MainAxisAlignment.spaceEvenly,
+        actions: [
+          OutlinedButton.icon(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              SystemNavigator.pop();
+            },
+            icon: const Icon(Icons.exit_to_app_rounded),
+            label: const Text('יציאה'),
+          ),
+          ElevatedButton.icon(
+            onPressed: () {
+              Navigator.of(ctx).pop();
+              setState(() {
+                startNewGame();
+              });
+            },
+            icon: const Icon(Icons.replay_rounded),
+            label: const Text('משחק חדש'),
+          ),
+        ],
+      ),
+    );
   }
 
   Color getTargetColor() {

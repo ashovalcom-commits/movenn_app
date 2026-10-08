@@ -2,6 +2,7 @@ import 'package:flutter/material.dart';
 
 import 'main.dart';
 import 'instructions_screen.dart';
+import 'stats_screen.dart';
 import 'app_theme.dart';
 import 'responsive.dart';
 
@@ -121,6 +122,47 @@ class HomeScreen extends StatelessWidget {
                             const SizedBox(width: 8),
                             Text(
                               '?איך משחקים',
+                              style: TextStyle(fontSize: r.sp(18)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: r.sp(14)),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: r.buttonHeight,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          Navigator.of(context).push(
+                            MaterialPageRoute(
+                              builder: (_) => const StatsScreen(),
+                            ),
+                          );
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(
+                            color: Colors.white54,
+                            width: 1.5,
+                          ),
+                          textStyle: TextStyle(
+                            fontSize: r.sp(18),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.bar_chart_rounded, size: r.sp(22)),
+                            const SizedBox(width: 8),
+                            Text(
+                              'סטטיסטיקות',
                               style: TextStyle(fontSize: r.sp(18)),
                             ),
                           ],
