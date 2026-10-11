@@ -1,4 +1,5 @@
 import 'package:flutter/material.dart';
+import 'package:flutter/foundation.dart';
 
 import 'dart:convert';
 
@@ -32,13 +33,17 @@ class MovennApp extends StatelessWidget {
 }
 
 class GameScreen extends StatefulWidget {
-  const GameScreen({super.key});
+  /// Optional pre-loaded questions for testing.
+  @visibleForTesting
+  final List<dynamic>? testQuestions;
+
+  const GameScreen({super.key, this.testQuestions});
 
   @override
-  State<GameScreen> createState() => _GameScreenState();
+  State<GameScreen> createState() => GameScreenState();
 }
 
-class _GameScreenState extends State<GameScreen>
+class GameScreenState extends State<GameScreen>
     with SingleTickerProviderStateMixin {
   List<dynamic> levels = [];
   List<dynamic> gameQuestions = []; // 10 random questions for this game
@@ -86,10 +91,15 @@ class _GameScreenState extends State<GameScreen>
   }
 
   Future<void> loadGameData() async {
-    final String response = await rootBundle.loadString(
-      'assets/venn_questions_edit3_6.json',
-    );
-    final data = await json.decode(response);
+    final List<dynamic> data;
+    if (widget.testQuestions != null) {
+      data = widget.testQuestions!;
+    } else {
+      final String response = await rootBundle.loadString(
+        'assets/venn_questions_edit3_6.json',
+      );
+      data = json.decode(response);
+    }
 
     List<String> pool = [];
     for (var level in data) {

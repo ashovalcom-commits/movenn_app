@@ -1,5 +1,3 @@
-import 'dart:js_interop' as js;
-
 import 'package:flutter/material.dart';
 
 import 'main.dart';
@@ -7,9 +5,8 @@ import 'instructions_screen.dart';
 import 'stats_screen.dart';
 import 'app_theme.dart';
 import 'responsive.dart';
-
-@js.JS('window.close')
-external void _closeWindow();
+import 'close_window_stub.dart'
+    if (dart.library.js_interop) 'close_window_web.dart';
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -182,7 +179,7 @@ class HomeScreen extends StatelessWidget {
                       height: r.buttonHeight,
                       child: OutlinedButton(
                         onPressed: () {
-                          _closeWindow();
+                          closeWindow();
                         },
                         style: OutlinedButton.styleFrom(
                           foregroundColor: Colors.white,

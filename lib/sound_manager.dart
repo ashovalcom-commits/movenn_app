@@ -20,9 +20,13 @@ class SoundManager {
     _wrongSound = _generateWrongSound();
     _switchSound = _generateSwitchSound();
 
-    await _correctPlayer.setVolume(0.5);
-    await _wrongPlayer.setVolume(0.5);
-    await _switchPlayer.setVolume(0.4);
+    try {
+      await _correctPlayer.setVolume(0.5);
+      await _wrongPlayer.setVolume(0.5);
+      await _switchPlayer.setVolume(0.4);
+    } catch (_) {
+      // Audio plugin unavailable (e.g. during tests).
+    }
   }
 
   // Correct answer: cheerful ascending two-tone
@@ -122,25 +126,33 @@ class SoundManager {
 
   Future<void> playCorrect() async {
     if (_correctSound == null) return;
-    await _correctPlayer.stop();
-    await _correctPlayer.play(BytesSource(_correctSound!));
+    try {
+      await _correctPlayer.stop();
+      await _correctPlayer.play(BytesSource(_correctSound!));
+    } catch (_) {}
   }
 
   Future<void> playWrong() async {
     if (_wrongSound == null) return;
-    await _wrongPlayer.stop();
-    await _wrongPlayer.play(BytesSource(_wrongSound!));
+    try {
+      await _wrongPlayer.stop();
+      await _wrongPlayer.play(BytesSource(_wrongSound!));
+    } catch (_) {}
   }
 
   Future<void> playSwitch() async {
     if (_switchSound == null) return;
-    await _switchPlayer.stop();
-    await _switchPlayer.play(BytesSource(_switchSound!));
+    try {
+      await _switchPlayer.stop();
+      await _switchPlayer.play(BytesSource(_switchSound!));
+    } catch (_) {}
   }
 
   void dispose() {
-    _correctPlayer.dispose();
-    _wrongPlayer.dispose();
-    _switchPlayer.dispose();
+    try {
+      _correctPlayer.dispose();
+      _wrongPlayer.dispose();
+      _switchPlayer.dispose();
+    } catch (_) {}
   }
 }
