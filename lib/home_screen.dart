@@ -1,3 +1,5 @@
+import 'dart:js_interop' as js;
+
 import 'package:flutter/material.dart';
 
 import 'main.dart';
@@ -5,6 +7,9 @@ import 'instructions_screen.dart';
 import 'stats_screen.dart';
 import 'app_theme.dart';
 import 'responsive.dart';
+
+@js.JS('window.close')
+external void _closeWindow();
 
 class HomeScreen extends StatelessWidget {
   const HomeScreen({super.key});
@@ -163,6 +168,43 @@ class HomeScreen extends StatelessWidget {
                             const SizedBox(width: 8),
                             Text(
                               'סטטיסטיקות',
+                              style: TextStyle(fontSize: r.sp(18)),
+                            ),
+                          ],
+                        ),
+                      ),
+                    ),
+
+                    SizedBox(height: r.sp(14)),
+
+                    SizedBox(
+                      width: double.infinity,
+                      height: r.buttonHeight,
+                      child: OutlinedButton(
+                        onPressed: () {
+                          _closeWindow();
+                        },
+                        style: OutlinedButton.styleFrom(
+                          foregroundColor: Colors.white,
+                          side: const BorderSide(
+                            color: Colors.white54,
+                            width: 1.5,
+                          ),
+                          textStyle: TextStyle(
+                            fontSize: r.sp(18),
+                            fontWeight: FontWeight.w600,
+                          ),
+                          shape: RoundedRectangleBorder(
+                            borderRadius: BorderRadius.circular(16),
+                          ),
+                        ),
+                        child: Row(
+                          mainAxisAlignment: MainAxisAlignment.center,
+                          children: [
+                            Icon(Icons.exit_to_app_rounded, size: r.sp(22)),
+                            const SizedBox(width: 8),
+                            Text(
+                              'יציאה',
                               style: TextStyle(fontSize: r.sp(18)),
                             ),
                           ],

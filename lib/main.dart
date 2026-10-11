@@ -338,10 +338,10 @@ class _GameScreenState extends State<GameScreen>
           OutlinedButton.icon(
             onPressed: () {
               Navigator.of(ctx).pop();
-              SystemNavigator.pop();
+              Navigator.of(context).popUntil((route) => route.isFirst);
             },
-            icon: const Icon(Icons.exit_to_app_rounded),
-            label: const Text('יציאה'),
+            icon: const Icon(Icons.home_rounded),
+            label: const Text('תפריט ראשי'),
           ),
           ElevatedButton.icon(
             onPressed: () {
