@@ -1,5 +1,4 @@
 import 'package:flutter/material.dart';
-import 'package:flutter/foundation.dart';
 
 import 'dart:convert';
 
@@ -133,6 +132,20 @@ class GameScreenState extends State<GameScreen>
 
     generateOptions();
     startTimers();
+    _precacheNextImage();
+  }
+
+  void _precacheNextImage() {
+    if (!mounted || widget.testQuestions != null) return;
+    final next = currentLevelIndex + 1;
+    if (next < gameQuestions.length) {
+      final nextImage = gameQuestions[next]['image_file'] as String;
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        precacheImage(AssetImage('assets/images/$nextImage'), context)
+            .catchError((_) {});
+      });
+    }
   }
 
   void startTimers() {
@@ -453,20 +466,22 @@ class GameScreenState extends State<GameScreen>
                         alignment: Alignment.center,
                         children: [
                           Image.asset(imagePath, fit: BoxFit.contain),
-                          AnimatedBuilder(
-                            animation: _pulseAnimation,
-                            builder: (context, child) {
-                              return CustomPaint(
-                                size: Size(
-                                  constraints.maxWidth,
-                                  constraints.maxHeight,
-                                ),
-                                painter: _SpotlightPainter(
-                                  target: currentTarget,
-                                  opacity: _pulseAnimation.value,
-                                ),
-                              );
-                            },
+                          RepaintBoundary(
+                            child: AnimatedBuilder(
+                              animation: _pulseAnimation,
+                              builder: (context, child) {
+                                return CustomPaint(
+                                  size: Size(
+                                    constraints.maxWidth,
+                                    constraints.maxHeight,
+                                  ),
+                                  painter: _SpotlightPainter(
+                                    target: currentTarget,
+                                    opacity: _pulseAnimation.value,
+                                  ),
+                                );
+                              },
+                            ),
                           ),
                         ],
                       );
