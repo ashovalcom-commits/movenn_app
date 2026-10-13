@@ -12,8 +12,11 @@ import 'splash_screen.dart';
 import 'app_theme.dart';
 import 'responsive.dart';
 import 'stats_service.dart';
+import 'image_cache_manager.dart';
 
 void main() {
+  WidgetsFlutterBinding.ensureInitialized();
+  ImageCacheManager.configure();
   runApp(const MovennApp());
 }
 
@@ -122,6 +125,15 @@ class GameScreenState extends State<GameScreen>
     totalScore = 0;
     gameCorrectAnswers = 0;
     gameTotalAnswers = 0;
+
+    // Batch pre-cache the first 3 images for a smooth start
+    if (mounted && widget.testQuestions == null) {
+      WidgetsBinding.instance.addPostFrameCallback((_) {
+        if (!mounted) return;
+        ImageCacheManager.precacheGameImages(context, gameQuestions, count: 3);
+      });
+    }
+
     startLevel();
   }
 
@@ -132,20 +144,20 @@ class GameScreenState extends State<GameScreen>
 
     generateOptions();
     startTimers();
-    _precacheNextImage();
+    _precacheNextImages();
   }
 
-  void _precacheNextImage() {
+  void _precacheNextImages() {
     if (!mounted || widget.testQuestions != null) return;
-    final next = currentLevelIndex + 1;
-    if (next < gameQuestions.length) {
-      final nextImage = gameQuestions[next]['image_file'] as String;
-      WidgetsBinding.instance.addPostFrameCallback((_) {
-        if (!mounted) return;
-        precacheImage(AssetImage('assets/images/$nextImage'), context)
-            .catchError((_) {});
-      });
-    }
+    WidgetsBinding.instance.addPostFrameCallback((_) {
+      if (!mounted) return;
+      ImageCacheManager.precacheGameImages(
+        context,
+        gameQuestions,
+        startIndex: currentLevelIndex + 1,
+        count: 2,
+      );
+    });
   }
 
   void startTimers() {
@@ -465,7 +477,11 @@ class GameScreenState extends State<GameScreen>
                       return Stack(
                         alignment: Alignment.center,
                         children: [
-                          Image.asset(imagePath, fit: BoxFit.contain),
+                          Image.asset(
+                            imagePath,
+                            fit: BoxFit.contain,
+                            gaplessPlayback: true,
+                          ),
                           RepaintBoundary(
                             child: AnimatedBuilder(
                               animation: _pulseAnimation,
