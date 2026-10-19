@@ -64,10 +64,20 @@ class GameScreenState extends State<GameScreen>
 
   Timer? _rotationTimer;
   Timer? _levelTimer;
+  Timer? _questionTimer;
+  int _questionElapsedSeconds = 0;
   DateTime? levelStartTime;
   final SoundManager _soundManager = SoundManager();
   late AnimationController _pulseController;
   late Animation<double> _pulseAnimation;
+
+  // Answer feedback overlay
+  bool _showFeedback = false;
+  bool _feedbackCorrect = false;
+
+  // Bonus mark overlay
+  bool _showBonusMark = false;
+  int _bonusTier = 0; // 1 or 2
 
   @override
   void initState() {
@@ -88,6 +98,7 @@ class GameScreenState extends State<GameScreen>
     _pulseController.dispose();
     _rotationTimer?.cancel();
     _levelTimer?.cancel();
+    _questionTimer?.cancel();
     _soundManager.dispose();
     super.dispose();
   }
@@ -141,10 +152,34 @@ class GameScreenState extends State<GameScreen>
     circleResults.clear();
     levelStartTime = DateTime.now();
     currentTarget = 'A';
+    _questionElapsedSeconds = 0;
+    _showFeedback = false;
+    _showBonusMark = false;
 
     generateOptions();
     startTimers();
+    _startQuestionTimer();
     _precacheNextImages();
+  }
+
+  void _startQuestionTimer() {
+    _questionTimer?.cancel();
+    _questionElapsedSeconds = 0;
+    _questionTimer = Timer.periodic(const Duration(seconds: 1), (timer) {
+      if (!mounted) {
+        timer.cancel();
+        return;
+      }
+      setState(() {
+        _questionElapsedSeconds++;
+      });
+    });
+  }
+
+  String _formatTime(int seconds) {
+    final m = (seconds ~/ 60).toString().padLeft(2, '0');
+    final s = (seconds % 60).toString().padLeft(2, '0');
+    return '$m:$s';
   }
 
   void _precacheNextImages() {
@@ -234,24 +269,18 @@ class GameScreenState extends State<GameScreen>
       _soundManager.playWrong();
     }
 
-    ScaffoldMessenger.of(context).showSnackBar(
-      SnackBar(
-        content: Row(
-          mainAxisAlignment: MainAxisAlignment.center,
-          children: [
-            Icon(
-              isCorrect ? Icons.check_circle_rounded : Icons.cancel_rounded,
-              color: Colors.white,
-              size: 20,
-            ),
-            const SizedBox(width: 8),
-            Text(isCorrect ? 'תשובה נכונה!' : 'טעות...'),
-          ],
-        ),
-        duration: const Duration(milliseconds: 800),
-        backgroundColor: isCorrect ? AppColors.correct : AppColors.wrong,
-      ),
-    );
+    // Show in-widget feedback at top of answer area
+    setState(() {
+      _showFeedback = true;
+      _feedbackCorrect = isCorrect;
+    });
+    Future.delayed(const Duration(milliseconds: 800), () {
+      if (mounted) {
+        setState(() {
+          _showFeedback = false;
+        });
+      }
+    });
 
     if (circleResults.length == 3) {
       finishLevel();
@@ -266,6 +295,7 @@ class GameScreenState extends State<GameScreen>
   void finishLevel() {
     _rotationTimer?.cancel();
     _levelTimer?.cancel();
+    _questionTimer?.cancel();
 
     int correctCount = circleResults.values.where((v) => v).length;
     gameCorrectAnswers += correctCount;
@@ -274,12 +304,15 @@ class GameScreenState extends State<GameScreen>
         .difference(levelStartTime!)
         .inSeconds;
 
+    int bonusTier = 0;
     if (correctCount == 3) {
       int bonus = 0;
       if (timeTakenInSeconds <= GameConfig.bonusTimeTier1) {
         bonus = GameConfig.speedBonusTier1;
+        bonusTier = 1;
       } else if (timeTakenInSeconds <= GameConfig.bonusTimeTier2) {
         bonus = GameConfig.speedBonusTier2;
+        bonusTier = 2;
       }
       if (bonus > 0) {
         setState(() {
@@ -288,6 +321,26 @@ class GameScreenState extends State<GameScreen>
       }
     }
 
+    if (bonusTier > 0) {
+      // Show bonus mark for 0.5s with bell sound
+      setState(() {
+        _showBonusMark = true;
+        _bonusTier = bonusTier;
+      });
+      _soundManager.playBell();
+      Future.delayed(const Duration(milliseconds: 500), () {
+        if (!mounted) return;
+        setState(() {
+          _showBonusMark = false;
+        });
+        _advanceAfterLevel();
+      });
+    } else {
+      _advanceAfterLevel();
+    }
+  }
+
+  void _advanceAfterLevel() {
     if (currentLevelIndex < gameQuestions.length - 1) {
       _soundManager.playSwitch();
       setState(() {
@@ -327,8 +380,9 @@ class GameScreenState extends State<GameScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              isNewHighScore ? '🎉 שיא חדש!' : 'סיום משחק!',
+              isNewHighScore ? '🎉 !שיא חדש' : '!סיום משחק',
               textAlign: TextAlign.center,
+              textDirection: TextDirection.rtl,
             ),
           ],
         ),
@@ -368,25 +422,36 @@ class GameScreenState extends State<GameScreen>
             ],
           ],
         ),
-        actionsAlignment: MainAxisAlignment.spaceEvenly,
+        actionsAlignment: MainAxisAlignment.center,
         actions: [
-          OutlinedButton.icon(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              Navigator.of(context).popUntil((route) => route.isFirst);
-            },
-            icon: const Icon(Icons.home_rounded),
-            label: const Text('תפריט ראשי'),
-          ),
-          ElevatedButton.icon(
-            onPressed: () {
-              Navigator.of(ctx).pop();
-              setState(() {
-                startNewGame();
-              });
-            },
-            icon: const Icon(Icons.replay_rounded),
-            label: const Text('משחק חדש'),
+          Column(
+            children: [
+              SizedBox(
+                width: 200,
+                child: OutlinedButton.icon(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    Navigator.of(context).popUntil((route) => route.isFirst);
+                  },
+                  icon: const Icon(Icons.home_rounded),
+                  label: const Text('תפריט ראשי'),
+                ),
+              ),
+              const SizedBox(height: 10),
+              SizedBox(
+                width: 200,
+                child: ElevatedButton.icon(
+                  onPressed: () {
+                    Navigator.of(ctx).pop();
+                    setState(() {
+                      startNewGame();
+                    });
+                  },
+                  icon: const Icon(Icons.replay_rounded),
+                  label: const Text('משחק חדש'),
+                ),
+              ),
+            ],
           ),
         ],
       ),
@@ -443,18 +508,18 @@ class GameScreenState extends State<GameScreen>
             child: Center(
               child: Container(
                 padding: const EdgeInsets.symmetric(
-                  horizontal: 12,
-                  vertical: 4,
+                  horizontal: 16,
+                  vertical: 6,
                 ),
                 decoration: BoxDecoration(
                   color: AppColors.accent,
-                  borderRadius: BorderRadius.circular(10),
+                  borderRadius: BorderRadius.circular(12),
                 ),
                 child: Text(
                   '$totalScore',
                   style: TextStyle(
-                    fontSize: r.sp(18),
-                    fontWeight: FontWeight.w800,
+                    fontSize: r.sp(26),
+                    fontWeight: FontWeight.w900,
                     color: AppColors.textPrimary,
                   ),
                 ),
@@ -499,6 +564,43 @@ class GameScreenState extends State<GameScreen>
                               },
                             ),
                           ),
+                          // Question timer (bottom right)
+                          Positioned(
+                            bottom: 4,
+                            right: 4,
+                            child: Container(
+                              padding: const EdgeInsets.symmetric(
+                                horizontal: 8,
+                                vertical: 4,
+                              ),
+                              decoration: BoxDecoration(
+                                color: Colors.black54,
+                                borderRadius: BorderRadius.circular(8),
+                              ),
+                              child: Text(
+                                _formatTime(_questionElapsedSeconds),
+                                style: TextStyle(
+                                  fontSize: r.sp(16),
+                                  fontWeight: FontWeight.w700,
+                                  color: Colors.white,
+                                  fontFeatures: const [FontFeature.tabularFigures()],
+                                ),
+                              ),
+                            ),
+                          ),
+                          // Bonus mark (bottom left)
+                          if (_showBonusMark)
+                            Positioned(
+                              bottom: 4,
+                              left: 4,
+                              child: Image.asset(
+                                _bonusTier == 1
+                                    ? 'assets/images/bonus_tier1.png'
+                                    : 'assets/images/bonus_tier2.png',
+                                width: r.sp(80),
+                                height: r.sp(80),
+                              ),
+                            ),
                         ],
                       );
                     },
@@ -535,6 +637,47 @@ class GameScreenState extends State<GameScreen>
                             mainAxisAlignment: MainAxisAlignment.center,
                             mainAxisSize: MainAxisSize.min,
                             children: [
+                              // Answer feedback banner
+                              AnimatedOpacity(
+                                opacity: _showFeedback ? 1.0 : 0.0,
+                                duration: const Duration(milliseconds: 200),
+                                child: Container(
+                                  width: double.infinity,
+                                  padding: EdgeInsets.symmetric(
+                                    vertical: r.sp(6),
+                                  ),
+                                  margin: EdgeInsets.only(bottom: r.sp(4)),
+                                  decoration: BoxDecoration(
+                                    color: _feedbackCorrect
+                                        ? AppColors.correct
+                                        : AppColors.wrong,
+                                    borderRadius: BorderRadius.circular(10),
+                                  ),
+                                  child: Row(
+                                    mainAxisAlignment: MainAxisAlignment.center,
+                                    children: [
+                                      Icon(
+                                        _feedbackCorrect
+                                            ? Icons.check_circle_rounded
+                                            : Icons.cancel_rounded,
+                                        color: Colors.white,
+                                        size: r.sp(20),
+                                      ),
+                                      const SizedBox(width: 8),
+                                      Text(
+                                        _feedbackCorrect
+                                            ? 'תשובה נכונה!'
+                                            : 'טעות...',
+                                        style: TextStyle(
+                                          color: Colors.white,
+                                          fontWeight: FontWeight.w700,
+                                          fontSize: r.sp(15),
+                                        ),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [

@@ -53,6 +53,12 @@ final Uint8List _kTransparentPng = Uint8List.fromList(const <int>[
   0x60, 0x82,
 ]);
 
+/// All extra asset keys the game may load (bonus mark images, etc.).
+const List<String> _extraAssets = [
+  'assets/images/bonus_tier1.png',
+  'assets/images/bonus_tier2.png',
+];
+
 /// Build a fake `AssetManifest.json` that covers every image the game uses.
 Uint8List _buildManifestJson() {
   final manifest = <String, List<String>>{
@@ -61,6 +67,9 @@ Uint8List _buildManifestJson() {
   for (final q in _fakeQuestions) {
     final file = q['image_file'] as String;
     manifest['assets/images/$file'] = ['assets/images/$file'];
+  }
+  for (final a in _extraAssets) {
+    manifest[a] = [a];
   }
   return Uint8List.fromList(utf8.encode(jsonEncode(manifest)));
 }
@@ -76,6 +85,9 @@ Uint8List _buildManifestBin() {
   add('assets/images/logo.jpeg');
   for (final q in _fakeQuestions) {
     add('assets/images/${q['image_file']}');
+  }
+  for (final a in _extraAssets) {
+    add(a);
   }
   final encoded = const StandardMessageCodec().encodeMessage(manifest)!;
   return encoded.buffer.asUint8List(encoded.offsetInBytes, encoded.lengthInBytes);
@@ -148,7 +160,8 @@ Future<void> _answerCurrentCircleCorrectly(WidgetTester tester) async {
   await tester.ensureVisible(button);
   await tester.tap(button);
   await tester.pump();
-  await tester.pump(const Duration(milliseconds: 100));
+  // Pump past the 800ms feedback timer
+  await tester.pump(const Duration(milliseconds: 900));
 }
 
 /// Helper: complete one full stage (answer all 3 circles).
@@ -157,6 +170,8 @@ Future<void> _completeOneStage(WidgetTester tester) async {
     await tester.pump(const Duration(milliseconds: 100));
     await _answerCurrentCircleCorrectly(tester);
   }
+  // Pump past possible 500ms bonus mark delay
+  await tester.pump(const Duration(milliseconds: 600));
 }
 
 void main() {
@@ -242,7 +257,7 @@ void main() {
 
   // ─────────────────── Answer selection ───────────────────
   group('Answer selection', () {
-    testWidgets('tapping the correct answer shows success snackbar',
+    testWidgets('tapping the correct answer shows success feedback',
         (tester) async {
       _setPhoneSize(tester);
       addTearDown(() {
@@ -261,12 +276,14 @@ void main() {
       await tester.ensureVisible(button);
       await tester.tap(button);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.text('תשובה נכונה!'), findsOneWidget);
+      // Pump past the 800ms feedback timer
+      await tester.pump(const Duration(milliseconds: 600));
     });
 
-    testWidgets('tapping a wrong answer shows error snackbar', (tester) async {
+    testWidgets('tapping a wrong answer shows error feedback', (tester) async {
       _setPhoneSize(tester);
       addTearDown(() {
         tester.view.resetPhysicalSize();
@@ -293,9 +310,11 @@ void main() {
       await tester.ensureVisible(wrongFinder.first);
       await tester.tap(wrongFinder.first);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 500));
+      await tester.pump(const Duration(milliseconds: 300));
 
       expect(find.text('טעות...'), findsOneWidget);
+      // Pump past the 800ms feedback timer
+      await tester.pump(const Duration(milliseconds: 600));
     });
 
     testWidgets('correct answer awards points', (tester) async {
@@ -317,7 +336,8 @@ void main() {
       await tester.ensureVisible(button);
       await tester.tap(button);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      // Pump past the 800ms feedback timer
+      await tester.pump(const Duration(milliseconds: 900));
 
       expect(
         state.totalScore,
@@ -344,7 +364,8 @@ void main() {
       await tester.ensureVisible(button);
       await tester.tap(button);
       await tester.pump();
-      await tester.pump(const Duration(milliseconds: 100));
+      // Pump past the 800ms feedback timer
+      await tester.pump(const Duration(milliseconds: 900));
 
       expect(state.currentTarget, isNot(equals(firstTarget)));
     });
@@ -456,7 +477,12 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 500));
 
-      await tester.tap(find.widgetWithText(ElevatedButton, 'משחק חדש'));
+      // Find the "משחק חדש" button inside the AlertDialog
+      final dialogButton = find.descendant(
+        of: find.byType(AlertDialog),
+        matching: find.widgetWithText(ElevatedButton, 'משחק חדש'),
+      );
+      await tester.tap(dialogButton);
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 100));
 

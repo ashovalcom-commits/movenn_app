@@ -152,21 +152,6 @@ class _StatsScreenState extends State<StatsScreen> {
                     ],
                   ),
 
-                  if (stats.lastScores.isNotEmpty) ...[
-                    SizedBox(height: r.sp(24)),
-                    Text(
-                      'משחקים אחרונים',
-                      textAlign: TextAlign.center,
-                      style: TextStyle(
-                        fontSize: r.sp(18),
-                        fontWeight: FontWeight.w700,
-                        color: AppColors.textPrimary,
-                      ),
-                    ),
-                    SizedBox(height: r.sp(12)),
-                    _ScoreHistory(scores: stats.lastScores, highScore: stats.highScore, r: r),
-                  ],
-
                   if (stats.gamesCompleted == 0)
                     Padding(
                       padding: EdgeInsets.only(top: r.sp(40)),
@@ -298,86 +283,3 @@ class _StatCard extends StatelessWidget {
   }
 }
 
-class _ScoreHistory extends StatelessWidget {
-  final List<int> scores;
-  final int highScore;
-  final Responsive r;
-
-  const _ScoreHistory({
-    required this.scores,
-    required this.highScore,
-    required this.r,
-  });
-
-  @override
-  Widget build(BuildContext context) {
-    return Card(
-      shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
-      child: Padding(
-        padding: EdgeInsets.all(r.sp(12)),
-        child: Column(
-          children: [
-            for (int i = 0; i < scores.length; i++)
-              Padding(
-                padding: EdgeInsets.symmetric(vertical: r.sp(6)),
-                child: Row(
-                  textDirection: TextDirection.rtl,
-                  children: [
-                    SizedBox(
-                      width: r.sp(28),
-                      child: Text(
-                        '${i + 1}.',
-                        textDirection: TextDirection.ltr,
-                        style: TextStyle(
-                          fontSize: r.sp(14),
-                          color: AppColors.textSecondary,
-                          fontWeight: FontWeight.w600,
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: r.sp(8)),
-                    Expanded(
-                      child: ClipRRect(
-                        borderRadius: BorderRadius.circular(6),
-                        child: LinearProgressIndicator(
-                          value: highScore > 0
-                              ? (scores[i] / highScore).clamp(0.0, 1.0)
-                              : 0,
-                          minHeight: r.sp(18),
-                          backgroundColor: AppColors.surfaceVariant,
-                          valueColor: AlwaysStoppedAnimation<Color>(
-                            scores[i] == highScore
-                                ? AppColors.accent
-                                : AppColors.primaryLight,
-                          ),
-                        ),
-                      ),
-                    ),
-                    SizedBox(width: r.sp(10)),
-                    Text(
-                      '${scores[i]}',
-                      style: TextStyle(
-                        fontSize: r.sp(16),
-                        fontWeight: FontWeight.w700,
-                        color: scores[i] == highScore
-                            ? AppColors.accent
-                            : AppColors.textPrimary,
-                      ),
-                    ),
-                    if (scores[i] == highScore) ...[
-                      SizedBox(width: r.sp(4)),
-                      Icon(
-                        Icons.star_rounded,
-                        size: r.sp(18),
-                        color: AppColors.accent,
-                      ),
-                    ],
-                  ],
-                ),
-              ),
-          ],
-        ),
-      ),
-    );
-  }
-}

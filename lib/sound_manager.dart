@@ -10,55 +10,70 @@ class SoundManager {
   final AudioPlayer _correctPlayer = AudioPlayer();
   final AudioPlayer _wrongPlayer = AudioPlayer();
   final AudioPlayer _switchPlayer = AudioPlayer();
+  final AudioPlayer _bellPlayer = AudioPlayer();
 
   Uint8List? _correctSound;
   Uint8List? _wrongSound;
   Uint8List? _switchSound;
+  Uint8List? _bellSound;
 
   Future<void> init() async {
     _correctSound = _generateCorrectSound();
     _wrongSound = _generateWrongSound();
     _switchSound = _generateSwitchSound();
+    _bellSound = _generateBellSound();
 
     try {
       await _correctPlayer.setVolume(0.5);
       await _wrongPlayer.setVolume(0.5);
       await _switchPlayer.setVolume(0.4);
+      await _bellPlayer.setVolume(0.6);
     } catch (_) {
       // Audio plugin unavailable (e.g. during tests).
     }
   }
 
-  // Correct answer: cheerful ascending two-tone
+  // Correct answer: bright ascending three-note chime
   Uint8List _generateCorrectSound() {
     const sampleRate = 44100;
-    const duration = 0.3;
+    const duration = 0.45;
     final samples = (sampleRate * duration).toInt();
     final data = Int16List(samples);
 
     for (int i = 0; i < samples; i++) {
       double t = i / sampleRate;
-      double freq = (t < 0.15) ? 880.0 : 1108.0; // A5 then C#6
-      double envelope = (1.0 - (i / samples)) * 0.8;
-      data[i] = (sin(2 * pi * freq * t) * envelope * 32000).toInt().clamp(-32767, 32767);
+      double freq;
+      if (t < 0.15) {
+        freq = 523.25; // C5
+      } else if (t < 0.30) {
+        freq = 659.25; // E5
+      } else {
+        freq = 783.99; // G5
+      }
+      double envelope = (1.0 - (i / samples)) * 0.85;
+      double wave = sin(2 * pi * freq * t) + 0.3 * sin(2 * pi * freq * 2 * t);
+      data[i] = (wave * envelope * 24000).toInt().clamp(-32767, 32767);
     }
 
     return _createWav(data, sampleRate);
   }
 
-  // Wrong answer: low descending buzzer
+  // Wrong answer: harsh low buzzer with dissonance
   Uint8List _generateWrongSound() {
     const sampleRate = 44100;
-    const duration = 0.35;
+    const duration = 0.5;
     final samples = (sampleRate * duration).toInt();
     final data = Int16List(samples);
 
     for (int i = 0; i < samples; i++) {
       double t = i / sampleRate;
-      double freq = 300.0 - (t * 200); // descending from 300 to ~230 Hz
-      double envelope = (1.0 - (i / samples) * 0.5) * 0.7;
-      double wave = sin(2 * pi * freq * t) + 0.3 * sin(2 * pi * freq * 2 * t);
-      data[i] = (wave * envelope * 20000).toInt().clamp(-32767, 32767);
+      double freq = 180.0 - (t * 60);
+      double envelope = (1.0 - (i / samples) * 0.7) * 0.75;
+      // Dissonant buzz with multiple harmonics
+      double wave = sin(2 * pi * freq * t)
+          + 0.5 * sin(2 * pi * freq * 1.5 * t)
+          + 0.3 * sin(2 * pi * freq * 3 * t);
+      data[i] = (wave * envelope * 16000).toInt().clamp(-32767, 32767);
     }
 
     return _createWav(data, sampleRate);
@@ -76,6 +91,27 @@ class SoundManager {
       double envelope = exp(-t * 40) * 0.7;
       double wave = sin(2 * pi * 1200 * t) + 0.5 * sin(2 * pi * 600 * t);
       data[i] = (wave * envelope * 24000).toInt().clamp(-32767, 32767);
+    }
+
+    return _createWav(data, sampleRate);
+  }
+
+  // Bell sound for bonus notification
+  Uint8List _generateBellSound() {
+    const sampleRate = 44100;
+    const duration = 0.4;
+    final samples = (sampleRate * duration).toInt();
+    final data = Int16List(samples);
+
+    for (int i = 0; i < samples; i++) {
+      double t = i / sampleRate;
+      double envelope = exp(-t * 8) * 0.9;
+      // Bell-like: fundamental + inharmonic partials
+      double wave = sin(2 * pi * 1567.98 * t)       // G6
+          + 0.6 * sin(2 * pi * 2093.0 * t)          // C7
+          + 0.3 * sin(2 * pi * 2637.02 * t)         // E7
+          + 0.15 * sin(2 * pi * 3135.96 * t);       // G7
+      data[i] = (wave * envelope * 18000).toInt().clamp(-32767, 32767);
     }
 
     return _createWav(data, sampleRate);
@@ -148,11 +184,20 @@ class SoundManager {
     } catch (_) {}
   }
 
+  Future<void> playBell() async {
+    if (_bellSound == null) return;
+    try {
+      await _bellPlayer.stop();
+      await _bellPlayer.play(BytesSource(_bellSound!));
+    } catch (_) {}
+  }
+
   void dispose() {
     try {
       _correctPlayer.dispose();
       _wrongPlayer.dispose();
       _switchPlayer.dispose();
+      _bellPlayer.dispose();
     } catch (_) {}
   }
 }

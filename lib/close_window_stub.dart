@@ -1,4 +1,6 @@
-/// No-op implementation for non-web platforms.
+import 'package:flutter/services.dart';
+
+/// Exit the app on non-web platforms (Android / iOS / desktop).
 void closeWindow() {
-  // Not supported outside web — do nothing.
+  SystemNavigator.pop();
 }
