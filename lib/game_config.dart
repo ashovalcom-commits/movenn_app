@@ -2,7 +2,7 @@ class GameConfig {
   // --- הגדרות זמנים (בשניות) ---
   
   /// כל כמה שניות מתחלף המעגל (A, B, C) באזור התשובות
-  static const int rotationInterval = 10; 
+  static const int rotationInterval = 25; 
   
   /// הזמן המקסימלי לכל דיאגרמת ון (שלב) לפני פסילה אוטומטית
   static const int maxLevelTime = 60; 

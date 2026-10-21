@@ -322,13 +322,13 @@ class GameScreenState extends State<GameScreen>
     }
 
     if (bonusTier > 0) {
-      // Show bonus mark for 0.5s with bell sound
+      // Show bonus mark for 1s with bell sound
       setState(() {
         _showBonusMark = true;
         _bonusTier = bonusTier;
       });
       _soundManager.playBell();
-      Future.delayed(const Duration(milliseconds: 500), () {
+      Future.delayed(const Duration(milliseconds: 1000), () {
         if (!mounted) return;
         setState(() {
           _showBonusMark = false;

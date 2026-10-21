@@ -7,10 +7,11 @@ class SoundManager {
   factory SoundManager() => _instance;
   SoundManager._internal();
 
-  final AudioPlayer _correctPlayer = AudioPlayer();
-  final AudioPlayer _wrongPlayer = AudioPlayer();
-  final AudioPlayer _switchPlayer = AudioPlayer();
-  final AudioPlayer _bellPlayer = AudioPlayer();
+  AudioPlayer _correctPlayer = AudioPlayer();
+  AudioPlayer _wrongPlayer = AudioPlayer();
+  AudioPlayer _switchPlayer = AudioPlayer();
+  AudioPlayer _bellPlayer = AudioPlayer();
+  bool _disposed = false;
 
   Uint8List? _correctSound;
   Uint8List? _wrongSound;
@@ -18,6 +19,15 @@ class SoundManager {
   Uint8List? _bellSound;
 
   Future<void> init() async {
+    // Recreate players if they were previously disposed.
+    if (_disposed) {
+      _correctPlayer = AudioPlayer();
+      _wrongPlayer = AudioPlayer();
+      _switchPlayer = AudioPlayer();
+      _bellPlayer = AudioPlayer();
+      _disposed = false;
+    }
+
     _correctSound = _generateCorrectSound();
     _wrongSound = _generateWrongSound();
     _switchSound = _generateSwitchSound();
@@ -193,6 +203,8 @@ class SoundManager {
   }
 
   void dispose() {
+    if (_disposed) return;
+    _disposed = true;
     try {
       _correctPlayer.dispose();
       _wrongPlayer.dispose();
