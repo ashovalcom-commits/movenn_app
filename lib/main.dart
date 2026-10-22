@@ -380,7 +380,7 @@ class GameScreenState extends State<GameScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              isNewHighScore ? '🎉 !שיא חדש' : '!סיום משחק',
+              isNewHighScore ? 'שיא חדש! 🎉' : '!סיום משחק',
               textAlign: TextAlign.center,
               textDirection: TextDirection.rtl,
             ),

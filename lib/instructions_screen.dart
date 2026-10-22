@@ -96,9 +96,11 @@ class InstructionsScreen extends StatelessWidget {
           child: ConstrainedBox(
             constraints: BoxConstraints(maxWidth: r.maxContentWidth),
             child: SingleChildScrollView(
-              padding: EdgeInsets.symmetric(
-                horizontal: r.sp(16),
-                vertical: r.sp(20),
+              padding: EdgeInsets.fromLTRB(
+                r.sp(16),
+                r.sp(20),
+                r.sp(16),
+                r.sp(40),
               ),
               child: Column(
                 children: [
@@ -107,7 +109,7 @@ class InstructionsScreen extends StatelessWidget {
                     title: 'מטרת המשחק',
                     children: [
                       const Text(
-                        'לזהות את הסרטים המסתתרים מאחורי המעגלים בדיאגרמה, בהתבסס על השחקנים המופיעים בהם, ולצבור את מספר הנקודות המירבי לאורך 10 שלבי המשחק.',
+                        'לזהות את הסרטים המסתתרים מאחורי המעגלים בדיאגרמה, בהתבסס על השחקנים המופיעים בהם, ולצבור את מספר הנקודות המירבי לאורך 10 שאלות.',
                         style: TextStyle(
                           fontSize: 15,
                           color: AppColors.textSecondary,
