@@ -57,6 +57,8 @@ final Uint8List _kTransparentPng = Uint8List.fromList(const <int>[
 const List<String> _extraAssets = [
   'assets/images/bonus_tier1.png',
   'assets/images/bonus_tier2.png',
+  'assets/images/correct_mark.png',
+  'assets/images/wrong_mark.png',
 ];
 
 /// Build a fake `AssetManifest.json` that covers every image the game uses.
@@ -170,8 +172,8 @@ Future<void> _completeOneStage(WidgetTester tester) async {
     await tester.pump(const Duration(milliseconds: 100));
     await _answerCurrentCircleCorrectly(tester);
   }
-  // Pump past possible 500ms bonus mark delay
-  await tester.pump(const Duration(milliseconds: 600));
+  // Pump past the 1000ms bonus mark display + _advanceAfterLevel
+  await tester.pump(const Duration(milliseconds: 1200));
 }
 
 void main() {
@@ -278,7 +280,10 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('תשובה נכונה!'), findsOneWidget);
+      // Feedback is now shown as a green border + checkmark image on the
+      // question display (the old text banner was removed in 1.0.2).
+      expect(state.feedbackVisible, isTrue);
+      expect(state.feedbackCorrect, isTrue);
       // Pump past the 800ms feedback timer
       await tester.pump(const Duration(milliseconds: 600));
     });
@@ -312,7 +317,10 @@ void main() {
       await tester.pump();
       await tester.pump(const Duration(milliseconds: 300));
 
-      expect(find.text('טעות...'), findsOneWidget);
+      // Feedback is now shown as a red border + X image on the
+      // question display (the old text banner was removed in 1.0.2).
+      expect(state.feedbackVisible, isTrue);
+      expect(state.feedbackCorrect, isFalse);
       // Pump past the 800ms feedback timer
       await tester.pump(const Duration(milliseconds: 600));
     });

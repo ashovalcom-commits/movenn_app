@@ -75,6 +75,14 @@ class GameScreenState extends State<GameScreen>
   bool _showFeedback = false;
   bool _feedbackCorrect = false;
 
+  /// Whether the correct/wrong feedback mark is currently visible (for testing).
+  @visibleForTesting
+  bool get feedbackVisible => _showFeedback;
+
+  /// Whether the last feedback was correct (for testing).
+  @visibleForTesting
+  bool get feedbackCorrect => _feedbackCorrect;
+
   // Bonus mark overlay
   bool _showBonusMark = false;
   int _bonusTier = 0; // 1 or 2
@@ -269,25 +277,31 @@ class GameScreenState extends State<GameScreen>
       _soundManager.playWrong();
     }
 
-    // Show in-widget feedback at top of answer area
+    // Show feedback mark on question display
     setState(() {
       _showFeedback = true;
       _feedbackCorrect = isCorrect;
     });
-    Future.delayed(const Duration(milliseconds: 800), () {
-      if (mounted) {
-        setState(() {
-          _showFeedback = false;
-        });
-      }
-    });
 
     if (circleResults.length == 3) {
-      finishLevel();
+      // Delay so the feedback mark is visible for the third circle too
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) {
+          setState(() {
+            _showFeedback = false;
+          });
+          finishLevel();
+        }
+      });
     } else {
-      setState(() {
-        moveToNextUnanswered();
-        startTimers();
+      Future.delayed(const Duration(milliseconds: 800), () {
+        if (mounted) {
+          setState(() {
+            _showFeedback = false;
+            moveToNextUnanswered();
+            startTimers();
+          });
+        }
       });
     }
   }
@@ -539,69 +553,99 @@ class GameScreenState extends State<GameScreen>
                   padding: EdgeInsets.all(r.sp(12)),
                   child: LayoutBuilder(
                     builder: (context, constraints) {
-                      return Stack(
-                        alignment: Alignment.center,
-                        children: [
-                          Image.asset(
-                            imagePath,
-                            fit: BoxFit.contain,
-                            gaplessPlayback: true,
-                          ),
-                          RepaintBoundary(
-                            child: AnimatedBuilder(
-                              animation: _pulseAnimation,
-                              builder: (context, child) {
-                                return CustomPaint(
-                                  size: Size(
-                                    constraints.maxWidth,
-                                    constraints.maxHeight,
-                                  ),
-                                  painter: _SpotlightPainter(
-                                    target: currentTarget,
-                                    opacity: _pulseAnimation.value,
-                                  ),
-                                );
-                              },
+                      return AnimatedContainer(
+                        duration: const Duration(milliseconds: 200),
+                        decoration: BoxDecoration(
+                          border: _showFeedback
+                              ? Border.all(
+                                  color: _feedbackCorrect
+                                      ? const Color(0xFF4CAF50)
+                                      : const Color(0xFFE53935),
+                                  width: 4,
+                                )
+                              : null,
+                          borderRadius: BorderRadius.circular(4),
+                        ),
+                        child: Stack(
+                          alignment: Alignment.center,
+                          children: [
+                            Image.asset(
+                              imagePath,
+                              fit: BoxFit.contain,
+                              gaplessPlayback: true,
                             ),
-                          ),
-                          // Question timer (bottom right)
-                          Positioned(
-                            bottom: 4,
-                            right: 4,
-                            child: Container(
-                              padding: const EdgeInsets.symmetric(
-                                horizontal: 8,
-                                vertical: 4,
+                            RepaintBoundary(
+                              child: AnimatedBuilder(
+                                animation: _pulseAnimation,
+                                builder: (context, child) {
+                                  return CustomPaint(
+                                    size: Size(
+                                      constraints.maxWidth,
+                                      constraints.maxHeight,
+                                    ),
+                                    painter: _SpotlightPainter(
+                                      target: currentTarget,
+                                      opacity: _pulseAnimation.value,
+                                    ),
+                                  );
+                                },
                               ),
-                              decoration: BoxDecoration(
-                                color: Colors.black54,
-                                borderRadius: BorderRadius.circular(8),
-                              ),
-                              child: Text(
-                                _formatTime(_questionElapsedSeconds),
-                                style: TextStyle(
-                                  fontSize: r.sp(16),
-                                  fontWeight: FontWeight.w700,
-                                  color: Colors.white,
-                                  fontFeatures: const [FontFeature.tabularFigures()],
+                            ),
+                            // Question timer (bottom right, moved up to avoid frame overlap)
+                            Positioned(
+                              bottom: 8,
+                              right: 8,
+                              child: Container(
+                                padding: const EdgeInsets.symmetric(
+                                  horizontal: 8,
+                                  vertical: 4,
+                                ),
+                                decoration: BoxDecoration(
+                                  color: Colors.black54,
+                                  borderRadius: BorderRadius.circular(8),
+                                ),
+                                child: Text(
+                                  _formatTime(_questionElapsedSeconds),
+                                  style: TextStyle(
+                                    fontSize: r.sp(16),
+                                    fontWeight: FontWeight.w700,
+                                    color: Colors.white,
+                                    fontFeatures: const [FontFeature.tabularFigures()],
+                                  ),
                                 ),
                               ),
                             ),
-                          ),
-                          // Bonus mark (bottom left)
-                          if (_showBonusMark)
-                            Positioned(
-                              bottom: 4,
-                              left: 4,
-                              child: Image.asset(
-                                _bonusTier == 1
-                                    ? 'assets/images/bonus_tier1.png'
-                                    : 'assets/images/bonus_tier2.png',
-                                width: r.sp(80),
-                                height: r.sp(80),
+                            // Correct/wrong mark (above timer, bottom right)
+                            if (_showFeedback)
+                              Positioned(
+                                bottom: 8,
+                                right: _feedbackCorrect ? 4 : 8,
+                                child: Padding(
+                                  padding: EdgeInsets.only(bottom: r.sp(32)),
+                                  child: Image.asset(
+                                    _feedbackCorrect
+                                        ? 'assets/images/correct_mark.png'
+                                        : 'assets/images/wrong_mark.png',
+                                    width: r.sp(48),
+                                    height: r.sp(48),
+                                  ),
+                                ),
                               ),
-                            ),
-                        ],
+                            // Bonus mark (bottom left, moved up to avoid frame overlap)
+                            if (_showBonusMark)
+                              Positioned(
+                                bottom: 8,
+                                left: 8,
+                                child: Image.asset(
+                                  _bonusTier == 1
+                                      ? 'assets/images/bonus_tier1.png'
+                                      : 'assets/images/bonus_tier2.png',
+                                  width: r.sp(80),
+                                  height: r.sp(80),
+                                ),
+                              ),
+                          ],
+                        ),
                       );
                     },
                   ),
@@ -637,47 +681,6 @@ class GameScreenState extends State<GameScreen>
                             mainAxisAlignment: MainAxisAlignment.center,
                             mainAxisSize: MainAxisSize.min,
                             children: [
-                              // Answer feedback banner
-                              AnimatedOpacity(
-                                opacity: _showFeedback ? 1.0 : 0.0,
-                                duration: const Duration(milliseconds: 200),
-                                child: Container(
-                                  width: double.infinity,
-                                  padding: EdgeInsets.symmetric(
-                                    vertical: r.sp(6),
-                                  ),
-                                  margin: EdgeInsets.only(bottom: r.sp(4)),
-                                  decoration: BoxDecoration(
-                                    color: _feedbackCorrect
-                                        ? AppColors.correct
-                                        : AppColors.wrong,
-                                    borderRadius: BorderRadius.circular(10),
-                                  ),
-                                  child: Row(
-                                    mainAxisAlignment: MainAxisAlignment.center,
-                                    children: [
-                                      Icon(
-                                        _feedbackCorrect
-                                            ? Icons.check_circle_rounded
-                                            : Icons.cancel_rounded,
-                                        color: Colors.white,
-                                        size: r.sp(20),
-                                      ),
-                                      const SizedBox(width: 8),
-                                      Text(
-                                        _feedbackCorrect
-                                            ? 'תשובה נכונה!'
-                                            : 'טעות...',
-                                        style: TextStyle(
-                                          color: Colors.white,
-                                          fontWeight: FontWeight.w700,
-                                          fontSize: r.sp(15),
-                                        ),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ),
                               Row(
                                 mainAxisAlignment: MainAxisAlignment.center,
                                 children: [
