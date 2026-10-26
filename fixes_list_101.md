@@ -1,5 +1,6 @@
 fixes to impliment after 12 tester are opted in
 
+
 1. increase actor name font size - this should be done in the movenn project
 2. sounds of correct answer and wrong answer are the same, we need seaparte sounds for each
 3. move the corrent/wrong answer text to the upper part of the answers display as in image-4
