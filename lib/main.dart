@@ -676,7 +676,7 @@ class GameScreenState extends State<GameScreen>
                             minHeight: constraints.maxHeight,
                           ),
                           child: Column(
-                            mainAxisAlignment: MainAxisAlignment.center,
+                            mainAxisAlignment: MainAxisAlignment.start,
                             mainAxisSize: MainAxisSize.min,
                             children: [
                               Row(
