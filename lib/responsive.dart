@@ -52,7 +52,7 @@ class Responsive {
 
   // Game screen: flex ratio for image vs answer panel
   int get imageFlex => isTablet ? 5 : (isSmallPhone ? 3 : 4);
-  int get answerFlex => isTablet ? 5 : (isSmallPhone ? 5 : 5);
+  int get answerFlex => isTablet ? 5 : (isSmallPhone ? 5 : 4);
 
   double get optionButtonHeight => sp(46);
 

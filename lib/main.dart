@@ -394,7 +394,7 @@ class GameScreenState extends State<GameScreen>
             ),
             const SizedBox(height: 8),
             Text(
-              isNewHighScore ? 'שיא חדש! 🎉' : '!סיום משחק',
+              isNewHighScore ? 'שיא חדש! 🎉' : 'סיום משחק!',
               textAlign: TextAlign.center,
               textDirection: TextDirection.rtl,
             ),
@@ -507,8 +507,6 @@ class GameScreenState extends State<GameScreen>
     final r = Responsive(context);
     final String imageName = gameQuestions[currentLevelIndex]['image_file'];
     final imagePath = 'assets/images/$imageName';
-    int remainingCircles = 3 - circleResults.length;
-
     return Scaffold(
       appBar: AppBar(
         automaticallyImplyLeading: false,
@@ -667,7 +665,7 @@ class GameScreenState extends State<GameScreen>
                   ),
                   padding: EdgeInsets.symmetric(
                     horizontal: r.sp(20),
-                    vertical: r.sp(10),
+                    vertical: r.sp(6),
                   ),
                   clipBehavior: Clip.hardEdge,
                   child: LayoutBuilder(
@@ -716,15 +714,7 @@ class GameScreenState extends State<GameScreen>
                                   ),
                                 ],
                               ),
-                              SizedBox(height: r.sp(2)),
-                              Text(
-                                'נותרו $remainingCircles תשובות לשלב זה',
-                                style: TextStyle(
-                                  fontSize: r.sp(12),
-                                  color: AppColors.textSecondary,
-                                ),
-                              ),
-                              SizedBox(height: r.sp(8)),
+                              SizedBox(height: r.sp(10)),
 
                               ...currentOptions.map(
                                 (movie) => Padding(
